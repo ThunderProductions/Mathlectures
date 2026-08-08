@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inequalities — Algebra 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b1120;
+    --surface:#111a30;
+    --surface-2:#16223f;
+    --grid:#1c2745;
+    --line:#2c3b5e;
+    --text:#eef1f8;
+    --muted:#8d97b4;
+    --accent:#ffb454;      /* solution / kept region */
+    --accent-2:#42d9c8;    /* included boundary */
+    --accent-3:#ff6b81;    /* excluded boundary */
+    --accent-4:#9c8cff;    /* third constraint */
+    --display:'Space Grotesk', sans-serif;
+    --body:'Inter', sans-serif;
+    --mono:'IBM Plex Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:44px 44px;
+    color:var(--text);
+    font-family:var(--body);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{font-family:var(--display); margin:0 0 .3em 0; letter-spacing:-0.01em;}
+  p{margin:0 0 1em 0; color:var(--muted); max-width:640px;}
+  .mono{font-family:var(--mono);}
+  ::selection{background:var(--accent); color:#1a1206;}
+
+  /* ---------- scrubber (video-style top bar) ---------- */
+  .scrubber{
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    background:rgba(11,17,32,0.86);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+    padding:10px 20px 8px;
+  }
+  .scrubber-top{display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:8px;}
+  .scrubber-title{font-family:var(--display); font-size:13px; font-weight:600; letter-spacing:.06em; color:var(--muted);}
+  .scrubber-time{font-family:var(--mono); font-size:12px; color:var(--muted); white-space:nowrap;}
+  .track{position:relative; height:4px; background:var(--line); border-radius:4px; margin-bottom:8px;}
+  .track-fill{position:absolute; left:0; top:0; height:100%; width:0%; background:var(--accent); border-radius:4px; transition:width .1s linear;}
+  .chapters{display:flex; gap:6px; flex-wrap:wrap;}
+  .chapter-btn{
+    background:none; border:1px solid var(--line); color:var(--muted);
+    font-family:var(--mono); font-size:11px; padding:4px 10px; border-radius:20px;
+    cursor:pointer; transition:.15s;
+  }
+  .chapter-btn:hover{border-color:var(--accent); color:var(--text);}
+  .chapter-btn.active{background:var(--accent); border-color:var(--accent); color:#1a1206; font-weight:600;}
+
+  /* ---------- layout ---------- */
+  .section{
+    min-height:100vh;
+    padding:130px 8vw 90px;
+    display:flex; flex-direction:column; justify-content:center;
+    max-width:1100px; margin:0 auto;
+    border-bottom:1px solid var(--line);
+  }
+  .hero{align-items:flex-start; min-height:100vh;}
+  .badge{
+    font-family:var(--mono); font-size:12px; color:var(--accent);
+    border:1px solid var(--line); padding:5px 12px; border-radius:20px; margin-bottom:22px;
+    letter-spacing:.08em;
+  }
+  .hero h1{font-size:clamp(48px,9vw,104px); line-height:.95;}
+  .hero p.lede{font-size:19px; color:var(--text); opacity:.75; max-width:560px; margin-top:10px;}
+  .scroll-cue{margin-top:60px; font-family:var(--mono); font-size:12px; color:var(--muted); animation:bob 2s ease-in-out infinite;}
+  @keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(6px);}}
+
+  .chapter-label{font-family:var(--mono); font-size:12px; color:var(--accent); letter-spacing:.1em; margin-bottom:6px;}
+  .section h2{font-size:clamp(28px,4vw,42px); margin-bottom:14px;}
+
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:start; margin-top:20px;}
+  @media (max-width:860px){ .grid-2{grid-template-columns:1fr;} }
+
+  .panel{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:22px 22px 26px;
+  }
+  .panel h3{font-size:15px; color:var(--muted); font-weight:500; text-transform:uppercase; letter-spacing:.06em; margin-bottom:16px;}
+
+  /* controls */
+  .toggle-row{display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap;}
+  .toggle-btn{
+    background:var(--surface-2); border:1px solid var(--line); color:var(--text);
+    font-family:var(--mono); font-size:13px; padding:8px 16px; border-radius:10px; cursor:pointer;
+  }
+  .toggle-btn.active{background:var(--accent); border-color:var(--accent); color:#1a1206; font-weight:600;}
+  .slider-row{display:flex; flex-direction:column; gap:6px; margin-bottom:16px;}
+  .slider-row label{font-family:var(--mono); font-size:12px; color:var(--muted);}
+  input[type=range]{width:100%; accent-color:var(--accent);}
+  .equation-readout{
+    font-family:var(--mono); font-size:20px; background:var(--surface-2);
+    padding:14px 16px; border-radius:10px; margin:14px 0; color:var(--accent); text-align:center;
+    border:1px solid var(--line);
+  }
+  .checkbox-row{display:flex; align-items:center; gap:8px; margin-bottom:16px; font-family:var(--mono); font-size:13px; color:var(--muted);}
+  .checkbox-row input{accent-color:var(--accent);}
+  .tester-row{display:flex; gap:8px; margin-top:16px;}
+  .tester-row input{
+    flex:1; background:var(--surface-2); border:1px solid var(--line); color:var(--text);
+    padding:10px 12px; border-radius:10px; font-family:var(--mono); font-size:14px;
+  }
+  .tester-row button{
+    background:var(--accent-2); border:none; color:#06231f; font-weight:600;
+    padding:10px 18px; border-radius:10px; cursor:pointer; font-family:var(--body);
+  }
+  .test-result{margin-top:10px; font-family:var(--mono); font-size:13px; min-height:20px;}
+  .test-result.yes{color:var(--accent-2);}
+  .test-result.no{color:var(--accent-3);}
+
+  svg{width:100%; height:auto; display:block;}
+
+  .chip-row{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px;}
+  .chip{
+    display:flex; align-items:center; gap:8px;
+    background:var(--surface-2); border:1px solid var(--line); border-radius:20px;
+    padding:8px 14px; cursor:pointer; font-family:var(--mono); font-size:12.5px; color:var(--muted);
+  }
+  .chip .dot{width:9px; height:9px; border-radius:50%; flex-shrink:0;}
+  .chip.active{color:var(--text); border-color:var(--accent);}
+
+  .preset-row{display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap;}
+
+  .sign-chart{display:flex; margin-top:16px; border-radius:10px; overflow:hidden; border:1px solid var(--line);}
+  .sign-box{flex:1; text-align:center; padding:14px 6px; font-family:var(--mono); background:var(--surface-2); border-right:1px solid var(--line);}
+  .sign-box:last-child{border-right:none;}
+  .sign-box.solution{background:rgba(255,180,84,0.18);}
+  .sign-box .sym{font-size:22px; font-weight:600;}
+  .sign-box .rng{font-size:11px; color:var(--muted); margin-top:4px;}
+
+  .steps{list-style:none; margin:14px 0 0; padding:0; font-family:var(--mono); font-size:14px; color:var(--muted);}
+  .steps li{padding:6px 0; border-bottom:1px dashed var(--line);}
+  .steps li:last-child{border-bottom:none; color:var(--accent);}
+
+  .quiz-q{margin-bottom:34px;}
+  .quiz-q .q-title{font-family:var(--mono); font-size:15px; margin-bottom:12px; color:var(--text);}
+  .quiz-opts{display:flex; flex-direction:column; gap:8px; max-width:480px;}
+  .quiz-opt{
+    background:var(--surface); border:1px solid var(--line); color:var(--text);
+    text-align:left; padding:12px 16px; border-radius:10px; cursor:pointer; font-family:var(--body); font-size:14px;
+  }
+  .quiz-opt.correct{border-color:var(--accent-2); background:rgba(66,217,200,0.12);}
+  .quiz-opt.wrong{border-color:var(--accent-3); background:rgba(255,107,129,0.12);}
+
+  .legend{display:flex; gap:18px; flex-wrap:wrap; margin-top:14px; font-family:var(--mono); font-size:12px; color:var(--muted);}
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .legend .dot{width:10px; height:10px; border-radius:50%;}
+
+  footer{padding:60px 8vw; text-align:center; font-family:var(--mono); font-size:12px; color:var(--muted);}
+</style>
+</head>
+<body>
+
+<div class="scrubber">
+  <div class="scrubber-top">
+    <div class="scrubber-title">▶ INEQUALITIES · ALGEBRA 2</div>
+    <div class="scrubber-time" id="scrubberTime">0:00 / 6:00</div>
+  </div>
+  <div class="track"><div class="track-fill" id="trackFill"></div></div>
+  <div class="chapters">
+    <button class="chapter-btn" data-target="hero">Intro</button>
+    <button class="chapter-btn" data-target="ch1">1 · Compound</button>
+    <button class="chapter-btn" data-target="ch2">2 · Quadratic</button>
+    <button class="chapter-btn" data-target="ch3">3 · Systems</button>
+    <button class="chapter-btn" data-target="ch4">4 · Check Yourself</button>
+  </div>
+</div>
+
+<section id="hero" class="section hero">
+  <div class="badge">A SCROLL-THROUGH LESSON · NO SOUND NEEDED</div>
+  <h1>Inequalities</h1>
+  <p class="lede">Not equations with one answer — regions with many. This lesson shows you where the boundary sits, and everything that lives on the correct side of it. Scroll like you'd scrub a video: three chapters, all interactive.</p>
+  <svg id="heroLine" viewBox="0 0 800 140"></svg>
+  <div class="scroll-cue">SCROLL TO START — CHAPTER 1 ↓</div>
+</section>
+
+<!-- ===================== CHAPTER 1 ===================== -->
+<section id="ch1" class="section chapter">
+  <div class="chapter-label">CHAPTER 1 / 3</div>
+  <h2>Compound Inequalities</h2>
+  <p>A compound inequality joins two conditions with <b>AND</b> or <b>OR</b>. AND keeps only values both conditions agree on — a bounded stretch of the line. OR keeps values either condition allows — everything outside a gap.</p>
+
+  <div class="grid-2">
+    <div class="panel">
+      <h3>Build one</h3>
+      <div class="toggle-row">
+        <button class="toggle-btn active" id="modeAnd">AND — between</button>
+        <button class="toggle-btn" id="modeOr">OR — outside</button>
+      </div>
+      <div class="slider-row">
+        <label id="labelA">Lower bound (a) = −4</label>
+        <input type="range" id="sliderA" min="-10" max="10" value="-4" step="1">
+      </div>
+      <div class="slider-row">
+        <label id="labelB">Upper bound (b) = 5</label>
+        <input type="range" id="sliderB" min="-10" max="10" value="5" step="1">
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="inclusiveToggle">
+        <label for="inclusiveToggle">Include the endpoints (≤ / ≥ instead of &lt; / &gt;)</label>
+      </div>
+      <div class="equation-readout" id="eqReadout">−4 &lt; x &lt; 5</div>
+
+      <div class="tester-row">
+        <input type="text" id="testInput" placeholder="Test a number, e.g. 2">
+        <button id="testBtn">Check</button>
+      </div>
+      <div class="test-result" id="testResult"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Number line</h3>
+      <svg id="numberLine1" viewBox="0 0 800 140"></svg>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--accent)"></span> solution region</span>
+        <span><span class="dot" style="background:var(--accent-2)"></span> included endpoint</span>
+        <span><span class="dot" style="background:var(--accent-3)"></span> excluded endpoint</span>
+      </div>
+      <h3 style="margin-top:24px;">Worked example</h3>
+      <ol class="steps">
+        <li>−3 ≤ 2x − 1 &lt; 5</li>
+        <li>−3 + 1 ≤ 2x &lt; 5 + 1 &nbsp; (add 1 to all three parts)</li>
+        <li>−2 ≤ 2x &lt; 6</li>
+        <li>−1 ≤ x &lt; 3 &nbsp; (divide all three parts by 2)</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 2 ===================== -->
+<section id="ch2" class="section chapter">
+  <div class="chapter-label">CHAPTER 2 / 3</div>
+  <h2>Quadratic Inequalities</h2>
+  <p>A quadratic inequality asks where a parabola sits above or below the x-axis. Factor it, find the roots, then test the sign in each region they create — the roots are the only places the sign can flip.</p>
+
+  <div class="grid-2">
+    <div class="panel">
+      <h3>Pick an example</h3>
+      <div class="preset-row">
+        <button class="toggle-btn active" data-preset="0">x² − x − 6 &gt; 0</button>
+        <button class="toggle-btn" data-preset="1">x² − 5x + 6 ≤ 0</button>
+        <button class="toggle-btn" data-preset="2">x² − 4 &lt; 0</button>
+      </div>
+      <div class="equation-readout" id="quadEq">(x − 3)(x + 2) &gt; 0</div>
+      <p style="margin-top:0;">Roots split the line into three pieces. On each piece the sign of the whole expression stays constant — so pick one test point per piece and see if it satisfies the inequality.</p>
+      <div class="sign-chart" id="signChart"></div>
+      <div class="equation-readout" id="quadSolution" style="margin-top:16px;">Solution: x &lt; −2 or x &gt; 3</div>
+    </div>
+
+    <div class="panel">
+      <h3>Parabola</h3>
+      <svg id="parabolaSvg" viewBox="0 0 560 380"></svg>
+      <h3 style="margin-top:10px;">Where it lands on the line</h3>
+      <svg id="numberLine2" viewBox="0 0 800 140"></svg>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 3 ===================== -->
+<section id="ch3" class="section chapter">
+  <div class="chapter-label">CHAPTER 3 / 3</div>
+  <h2>Systems of Inequalities</h2>
+  <p>Each inequality shades a half of the plane. The solution to a <i>system</i> is wherever every shaded half overlaps — turn constraints on and off below and watch the overlap darken as regions stack.</p>
+
+  <div class="grid-2">
+    <div class="panel">
+      <h3>Constraints</h3>
+      <div class="chip-row" id="chipRow"></div>
+      <p style="margin-top:0;">Solid boundary = the line itself is included (≤ / ≥). Dashed boundary = the line is excluded (&lt; / &gt;).</p>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--accent)"></span> single constraint</span>
+        <span><span class="dot" style="background:var(--accent);opacity:.85"></span> region satisfying <i>all</i> active constraints (darker)</span>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Coordinate plane</h3>
+      <svg id="systemSvg" viewBox="0 0 520 520"></svg>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 4 : QUIZ ===================== -->
+<section id="ch4" class="section chapter quiz">
+  <div class="chapter-label">CHAPTER 4 / 4</div>
+  <h2>Check Yourself</h2>
+  <p>Three quick checks. Click an answer — no pressure, just instant feedback.</p>
+
+  <div id="quizContainer"></div>
+</section>
+
+<footer>MADE FOR ALGEBRA 2 · SCRUB THE BAR ABOVE TO JUMP BETWEEN CHAPTERS</footer>
+
+<script>
+// ============================================================
+// SVG HELPERS
+// ============================================================
+const SVGNS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs){
+  const e = document.createElementNS(SVGNS, tag);
+  for(const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+// ============================================================
+// GENERIC NUMBER LINE RENDERER
+// segments: [{from, to, inclusiveFrom, inclusiveTo}]  from/to can be -Infinity/Infinity
+// ============================================================
+function drawNumberLine(svg, {min, max, segments, testPoint, ticksStep=2}){
+  svg.innerHTML = '';
+  const W = 800, H = 140, marginX = 46, axisY = 74;
+  const usableW = W - 2*marginX;
+  const xPos = v => marginX + ((v - min)/(max - min)) * usableW;
+
+  svg.appendChild(el('line', {x1:marginX-14, y1:axisY, x2:W-marginX+14, y2:axisY, stroke:'var(--line)', 'stroke-width':2}));
+
+  for(let t = Math.ceil(min/ticksStep)*ticksStep; t <= max; t += ticksStep){
+    const x = xPos(t);
+    svg.appendChild(el('line', {x1:x, y1:axisY-7, x2:x, y2:axisY+7, stroke:'var(--muted)', 'stroke-width':1.5}));
+    const txt = el('text', {x:x, y:axisY+30, fill:'var(--muted)', 'font-family':'var(--mono)', 'font-size':13, 'text-anchor':'middle'});
+    txt.textContent = t;
+    svg.appendChild(txt);
+  }
+
+  segments.forEach(seg=>{
+    const x1 = seg.from === -Infinity ? marginX-30 : xPos(seg.from);
+    const x2 = seg.to === Infinity ? W-marginX+30 : xPos(seg.to);
+    svg.appendChild(el('rect', {x:x1, y:axisY-12, width:Math.max(x2-x1,0), height:24, fill:'var(--accent)', opacity:0.45, rx:4}));
+
+    if(seg.from !== -Infinity){
+      svg.appendChild(el('circle', {cx:x1, cy:axisY, r:7,
+        fill: seg.inclusiveFrom ? 'var(--accent-2)' : 'var(--bg)',
+        stroke: seg.inclusiveFrom ? 'var(--accent-2)' : 'var(--accent-3)', 'stroke-width':2.5}));
+    } else {
+      svg.appendChild(el('polygon', {points:`${marginX-30},${axisY} ${marginX-14},${axisY-8} ${marginX-14},${axisY+8}`, fill:'var(--accent)'}));
+    }
+    if(seg.to !== Infinity){
+      svg.appendChild(el('circle', {cx:x2, cy:axisY, r:7,
+        fill: seg.inclusiveTo ? 'var(--accent-2)' : 'var(--bg)',
+        stroke: seg.inclusiveTo ? 'var(--accent-2)' : 'var(--accent-3)', 'stroke-width':2.5}));
+    } else {
+      svg.appendChild(el('polygon', {points:`${W-marginX+30},${axisY} ${W-marginX+14},${axisY-8} ${W-marginX+14},${axisY+8}`, fill:'var(--accent)'}));
+    }
+  });
+
+  if(testPoint){
+    const clamped = Math.max(min, Math.min(max, testPoint.value));
+    const x = xPos(clamped);
+    const color = testPoint.isSolution ? 'var(--accent-2)' : 'var(--accent-3)';
+    svg.appendChild(el('line', {x1:x, y1:20, x2:x, y2:axisY-12, stroke:color, 'stroke-width':2}));
+    svg.appendChild(el('circle', {cx:x, cy:16, r:8, fill:color}));
+    const label = el('text', {x:x, y:12, fill:color, 'font-family':'var(--mono)', 'font-size':12, 'text-anchor':'middle'});
+    label.textContent = testPoint.value;
+    svg.appendChild(label);
+  }
+}
+
+// ============================================================
+// HERO — ambient auto-animating demo line (not interactive)
+// ============================================================
+(function heroDemo(){
+  const svg = document.getElementById('heroLine');
+  let t = 0;
+  function frame(){
+    const wobble = Math.sin(t) * 1.2;
+    drawNumberLine(svg, {min:-10, max:10, segments:[{from:-2+wobble, to:6+wobble, inclusiveFrom:true, inclusiveTo:false}]});
+    t += 0.012;
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+
+// ============================================================
+// CHAPTER 1 — compound inequalities
+// ============================================================
+const ch1 = {
+  mode: 'AND',
+  inclusive: false,
+  a: -4,
+  b: 5
+};
+const sliderA = document.getElementById('sliderA');
+const sliderB = document.getElementById('sliderB');
+const labelA = document.getElementById('labelA');
+const labelB = document.getElementById('labelB');
+const modeAndBtn = document.getElementById('modeAnd');
+const modeOrBtn = document.getElementById('modeOr');
+const inclusiveToggle = document.getElementById('inclusiveToggle');
+const eqReadout = document.getElementById('eqReadout');
+const nl1 = document.getElementById('numberLine1');
+const testInput = document.getElementById('testInput');
+const testBtn = document.getElementById('testBtn');
+const testResult = document.getElementById('testResult');
+
+function renderCh1(){
+  let a = Math.min(parseInt(sliderA.value), parseInt(sliderB.value));
+  let b = Math.max(parseInt(sliderA.value), parseInt(sliderB.value));
+  ch1.a = a; ch1.b = b;
+  labelA.textContent = `Lower bound (a) = ${sliderA.value}`;
+  labelB.textContent = `Upper bound (b) = ${sliderB.value}`;
+
+  const lt = ch1.inclusive ? '≤' : '<';
+  const gt = ch1.inclusive ? '≥' : '>';
+  let segments;
+  if(ch1.mode === 'AND'){
+    eqReadout.textContent = `${a} ${lt} x ${lt} ${b}`;
+    segments = [{from:a, to:b, inclusiveFrom:ch1.inclusive, inclusiveTo:ch1.inclusive}];
+  } else {
+    eqReadout.textContent = `x ${lt} ${a}  or  x ${gt} ${b}`;
+    segments = [
+      {from:-Infinity, to:a, inclusiveFrom:false, inclusiveTo:ch1.inclusive},
+      {from:b, to:Infinity, inclusiveFrom:ch1.inclusive, inclusiveTo:false}
+    ];
+  }
+  drawNumberLine(nl1, {min:-10, max:10, segments, testPoint: ch1.lastTest});
+}
+
+function testCh1Value(v){
+  const {a, b, mode, inclusive} = ch1;
+  let isSolution;
+  if(mode === 'AND'){
+    isSolution = inclusive ? (v >= a && v <= b) : (v > a && v < b);
+  } else {
+    isSolution = inclusive ? (v <= a || v >= b) : (v < a || v > b);
+  }
+  return isSolution;
+}
+
+modeAndBtn.addEventListener('click', ()=>{ ch1.mode='AND'; modeAndBtn.classList.add('active'); modeOrBtn.classList.remove('active'); renderCh1(); });
+modeOrBtn.addEventListener('click', ()=>{ ch1.mode='OR'; modeOrBtn.classList.add('active'); modeAndBtn.classList.remove('active'); renderCh1(); });
+inclusiveToggle.addEventListener('change', ()=>{ ch1.inclusive = inclusiveToggle.checked; renderCh1(); });
+sliderA.addEventListener('input', renderCh1);
+sliderB.addEventListener('input', renderCh1);
+testBtn.addEventListener('click', ()=>{
+  const v = parseFloat(testInput.value);
+  if(isNaN(v)){ testResult.textContent = 'Enter a number first.'; testResult.className='test-result'; return; }
+  const ok = testCh1Value(v);
+  ch1.lastTest = {value:v, isSolution:ok};
+  testResult.textContent = ok ? `✓ ${v} satisfies the inequality.` : `✕ ${v} does not satisfy the inequality.`;
+  testResult.className = 'test-result ' + (ok ? 'yes' : 'no');
+  renderCh1();
+});
+renderCh1();
+
+// ============================================================
+// CHAPTER 2 — quadratic inequalities
+// ============================================================
+const quadPresets = [
+  {a:1, b:-1, c:-6, op:'>',  factored:'(x − 3)(x + 2)', eq:'x² − x − 6'},
+  {a:1, b:-5, c:6,  op:'<=', factored:'(x − 2)(x − 3)', eq:'x² − 5x + 6'},
+  {a:1, b:0,  c:-4, op:'<',  factored:'(x − 2)(x + 2)', eq:'x² − 4'}
+];
+const opSymbol = {'>':'&gt;', '<':'&lt;', '<=':'≤', '>=':'≥'};
+const quadEqEl = document.getElementById('quadEq');
+const quadSolEl = document.getElementById('quadSolution');
+const signChartEl = document.getElementById('signChart');
+const parabolaSvg = document.getElementById('parabolaSvg');
+const nl2 = document.getElementById('numberLine2');
+
+function solveQuad(preset){
+  const {a, b, c} = preset;
+  const disc = b*b - 4*a*c;
+  const sq = Math.sqrt(disc);
+  let r1 = (-b - sq)/(2*a), r2 = (-b + sq)/(2*a);
+  if(r1 > r2) [r1, r2] = [r2, r1];
+  const inclusive = preset.op.includes('=');
+  const outside = preset.op[0] === '>'; // a>0 in all presets: '>' -> outside roots
+  return {r1, r2, inclusive, outside};
+}
+
+function renderCh2(preset){
+  const {r1, r2, inclusive, outside} = solveQuad(preset);
+  quadEqEl.innerHTML = `${preset.factored} ${opSymbol[preset.op]} 0`;
+
+  // solution text + segments
+  let segments, solutionText;
+  const lt = inclusive ? '≤' : '<';
+  const gt = inclusive ? '≥' : '>';
+  if(outside){
+    solutionText = `Solution: x ${inclusive?'≤':'<'} ${r1}  or  x ${inclusive?'≥':'>'} ${r2}`;
+    segments = [
+      {from:-Infinity, to:r1, inclusiveFrom:false, inclusiveTo:inclusive},
+      {from:r2, to:Infinity, inclusiveFrom:inclusive, inclusiveTo:false}
+    ];
+  } else {
+    solutionText = `Solution: ${r1} ${inclusive?'≤':'<'} x ${inclusive?'≤':'<'} ${r2}`;
+    segments = [{from:r1, to:r2, inclusiveFrom:inclusive, inclusiveTo:inclusive}];
+  }
+  quadSolEl.textContent = solutionText;
+  drawNumberLine(nl2, {min:-8, max:8, segments});
+
+  // sign chart
+  signChartEl.innerHTML = '';
+  const regions = [
+    {label:`x < ${r1}`, sign: outside ? '+' : '−', isSolution: outside},
+    {label:`${r1} < x < ${r2}`, sign: outside ? '−' : '+', isSolution: !outside},
+    {label:`x > ${r2}`, sign: outside ? '+' : '−', isSolution: outside}
+  ];
+  regions.forEach(r=>{
+    const box = document.createElement('div');
+    box.className = 'sign-box' + (r.isSolution ? ' solution' : '');
+    box.innerHTML = `<div class="sym" style="color:${r.sign==='+'?'var(--accent-2)':'var(--accent-3)'}">${r.sign}</div><div class="rng">${r.label}</div>`;
+    signChartEl.appendChild(box);
+  });
+
+  // parabola
+  parabolaSvg.innerHTML = '';
+  const W=560, H=380, xmin=-6, xmax=6, ymin=-6, ymax=14;
+  const toX = x => (x-xmin)/(xmax-xmin)*W;
+  const toY = y => H - (y-ymin)/(ymax-ymin)*H;
+
+  // grid axes
+  parabolaSvg.appendChild(el('line', {x1:0, y1:toY(0), x2:W, y2:toY(0), stroke:'var(--line)', 'stroke-width':2}));
+  parabolaSvg.appendChild(el('line', {x1:toX(0), y1:0, x2:toX(0), y2:H, stroke:'var(--line)', 'stroke-width':2}));
+
+  // shaded x-axis regions matching solution
+  segments.forEach(seg=>{
+    const x1 = seg.from===-Infinity ? 0 : toX(seg.from);
+    const x2 = seg.to===Infinity ? W : toX(seg.to);
+    parabolaSvg.appendChild(el('rect', {x:x1, y:toY(0)-3, width:Math.max(x2-x1,0), height:6, fill:'var(--accent)', opacity:0.7}));
+  });
+
+  // parabola curve
+  let d = '';
+  for(let x=xmin; x<=xmax+1e-9; x+=0.15){
+    const yRaw = preset.a*x*x + preset.b*x + preset.c;
+    const yClamped = Math.max(ymin, Math.min(ymax, yRaw));
+    const px = toX(x), py = toY(yClamped);
+    d += (d===''?'M':'L') + px.toFixed(1) + ',' + py.toFixed(1) + ' ';
+  }
+  parabolaSvg.appendChild(el('path', {d, fill:'none', stroke:'var(--accent-2)', 'stroke-width':3}));
+
+  // roots
+  [r1, r2].forEach(r=>{
+    parabolaSvg.appendChild(el('circle', {cx:toX(r), cy:toY(0), r:6, fill:'var(--bg)', stroke:'var(--accent-2)', 'stroke-width':2.5}));
+  });
+}
+
+document.querySelectorAll('[data-preset]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('[data-preset]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderCh2(quadPresets[parseInt(btn.dataset.preset)]);
+  });
+});
+renderCh2(quadPresets[0]);
+
+// ============================================================
+// CHAPTER 3 — systems of inequalities (half-plane overlap)
+// ============================================================
+const lines3 = [
+  {id:'l1', label:'y > 0.5x − 1', m:0.5, b:-1, dir:'above', strict:true,  color:'var(--accent-2)', active:true},
+  {id:'l2', label:'y ≤ −x + 4',   m:-1,  b:4,  dir:'below', strict:false, color:'var(--accent-3)', active:true},
+  {id:'l3', label:'y ≥ 0',        m:0,   b:0,  dir:'above', strict:false, color:'var(--accent-4)', active:false}
+];
+const chipRow = document.getElementById('chipRow');
+const systemSvg = document.getElementById('systemSvg');
+const box3 = {xmin:-8, xmax:8, ymin:-8, ymax:8};
+const S = 520;
+function toSVG3(x, y){
+  return [ (x-box3.xmin)/(box3.xmax-box3.xmin)*S, S - (y-box3.ymin)/(box3.ymax-box3.ymin)*S ];
+}
+
+function renderChips(){
+  chipRow.innerHTML = '';
+  lines3.forEach(line=>{
+    const chip = document.createElement('div');
+    chip.className = 'chip' + (line.active ? ' active' : '');
+    chip.innerHTML = `<span class="dot" style="background:${line.color}"></span>${line.label}`;
+    chip.addEventListener('click', ()=>{ line.active = !line.active; renderChips(); renderSystem(); });
+    chipRow.appendChild(chip);
+  });
+}
+
+function renderSystem(){
+  systemSvg.innerHTML = '';
+  // grid
+  for(let g=box3.xmin; g<=box3.xmax; g+=2){
+    const [gx1,gy1] = toSVG3(g, box3.ymin);
+    const [gx2,gy2] = toSVG3(g, box3.ymax);
+    systemSvg.appendChild(el('line', {x1:gx1, y1:gy1, x2:gx2, y2:gy2, stroke:'var(--grid)', 'stroke-width':1}));
+    const [hx1,hy1] = toSVG3(box3.xmin, g);
+    const [hx2,hy2] = toSVG3(box3.xmax, g);
+    systemSvg.appendChild(el('line', {x1:hx1, y1:hy1, x2:hx2, y2:hy2, stroke:'var(--grid)', 'stroke-width':1}));
+  }
+  // axes
+  const [ax1,ay1] = toSVG3(box3.xmin, 0); const [ax2,ay2] = toSVG3(box3.xmax, 0);
+  const [by1x,by1y] = toSVG3(0, box3.ymin); const [by2x,by2y] = toSVG3(0, box3.ymax);
+  systemSvg.appendChild(el('line', {x1:ax1, y1:ay1, x2:ax2, y2:ay2, stroke:'var(--line)', 'stroke-width':2}));
+  systemSvg.appendChild(el('line', {x1:by1x, y1:by1y, x2:by2x, y2:by2y, stroke:'var(--line)', 'stroke-width':2}));
+
+  const active = lines3.filter(l=>l.active);
+
+  // fills first (same amber color -> overlaps compound darker)
+  active.forEach(line=>{
+    const {m, b, dir} = line;
+    const yL = m*box3.xmin + b, yR = m*box3.xmax + b;
+    const edge = dir === 'above' ? box3.ymax : box3.ymin;
+    const pts = [[box3.xmin,yL],[box3.xmax,yR],[box3.xmax,edge],[box3.xmin,edge]]
+      .map(p => toSVG3(p[0], p[1]));
+    const d = 'M ' + pts.map(p=>p.join(',')).join(' L ') + ' Z';
+    systemSvg.appendChild(el('path', {d, fill:'var(--accent)', opacity:0.32}));
+  });
+
+  // boundary strokes on top
+  active.forEach(line=>{
+    const {m, b, strict, color} = line;
+    const [x1,y1] = toSVG3(box3.xmin, m*box3.xmin+b);
+    const [x2,y2] = toSVG3(box3.xmax, m*box3.xmax+b);
+    const attrs = {x1, y1, x2, y2, stroke:color, 'stroke-width':3};
+    if(strict) attrs['stroke-dasharray'] = '8,6';
+    systemSvg.appendChild(el('line', attrs));
+  });
+
+  // border box
+  systemSvg.appendChild(el('rect', {x:0, y:0, width:S, height:S, fill:'none', stroke:'var(--line)', 'stroke-width':1}));
+}
+
+renderChips();
+renderSystem();
+
+// ============================================================
+// CHAPTER 4 — quiz
+// ============================================================
+const quiz = [
+  {
+    q: 'Which values solve  −2 < x ≤ 3 ?',
+    options: ['Only x = 3', 'Everything strictly between −2 and 3, plus 3 itself', 'Everything less than −2 or greater than 3', 'Only whole numbers between −2 and 3'],
+    correct: 1
+  },
+  {
+    q: 'For (x − 4)(x + 1) < 0, which region is the solution?',
+    options: ['x < −1 or x > 4', '−1 < x < 4', 'x = −1 or x = 4', 'x > 4 only'],
+    correct: 1
+  },
+  {
+    q: 'In a system of two inequalities, the solution region is:',
+    options: ['Wherever either inequality is satisfied', 'Only points exactly on both boundary lines', 'Wherever both shaded half-planes overlap', 'The entire coordinate plane'],
+    correct: 2
+  }
+];
+const quizContainer = document.getElementById('quizContainer');
+quiz.forEach((item, qi)=>{
+  const wrap = document.createElement('div');
+  wrap.className = 'quiz-q';
+  const title = document.createElement('div');
+  title.className = 'q-title';
+  title.textContent = `${qi+1}. ${item.q}`;
+  wrap.appendChild(title);
+  const opts = document.createElement('div');
+  opts.className = 'quiz-opts';
+  item.options.forEach((opt, oi)=>{
+    const btn = document.createElement('button');
+    btn.className = 'quiz-opt';
+    btn.textContent = opt;
+    btn.addEventListener('click', ()=>{
+      const allBtns = opts.querySelectorAll('.quiz-opt');
+      allBtns.forEach(b=>{ b.classList.remove('correct','wrong'); b.disabled = true; });
+      if(oi === item.correct){ btn.classList.add('correct'); }
+      else {
+        btn.classList.add('wrong');
+        allBtns[item.correct].classList.add('correct');
+      }
+    });
+    opts.appendChild(btn);
+  });
+  wrap.appendChild(opts);
+  quizContainer.appendChild(wrap);
+});
+
+// ============================================================
+// SCRUBBER — scroll progress + active chapter
+// ============================================================
+const trackFill = document.getElementById('trackFill');
+const scrubberTime = document.getElementById('scrubberTime');
+const chapterBtns = document.querySelectorAll('.chapter-btn');
+const sections = ['hero','ch1','ch2','ch3','ch4'].map(id=>document.getElementById(id));
+
+function fmtTime(sec){
+  const m = Math.floor(sec/60), s = Math.floor(sec%60);
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
+
+function updateScrubber(){
+  const scrollTop = window.scrollY;
+  const max = document.body.scrollHeight - window.innerHeight;
+  const progress = max > 0 ? Math.min(1, Math.max(0, scrollTop/max)) : 0;
+  trackFill.style.width = (progress*100) + '%';
+  const totalSeconds = 360;
+  scrubberTime.textContent = `${fmtTime(progress*totalSeconds)} / ${fmtTime(totalSeconds)}`;
+
+  let activeIdx = 0;
+  sections.forEach((sec, i)=>{
+    if(scrollTop >= sec.offsetTop - window.innerHeight*0.5) activeIdx = i;
+  });
+  chapterBtns.forEach((b,i)=> b.classList.toggle('active', i===activeIdx));
+}
+window.addEventListener('scroll', updateScrubber, {passive:true});
+window.addEventListener('resize', updateScrubber);
+updateScrubber();
+
+chapterBtns.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.getElementById(btn.dataset.target).scrollIntoView({behavior:'smooth'});
+  });
+});
+</script>
+</body>
+</html>
